@@ -142,11 +142,21 @@ TIME_FORMAT = '%H:%M:%S %d/%m/%Y'
 
 # Copied from EventScripts Emulator (es_emulator/helpers.py#90-99)
 if SOURCE_ENGINE_BRANCH == 'csgo':
+    # TODO: Verify these values
+    MAX_INFO_LINES = 3
+    MAX_INFO_CHARACTER_LENGTH = 127
+    MAX_INFO_LINE_LENGTH = 93
+
     COLOR_DEFAULT = '\1'
     COLOR_GREEN = '\4'
     COLOR_LIGHTGREEN = '\5'
     COLOR_DARKGREEN = '\6'
 else:
+    # TODO: Verify these values
+    MAX_INFO_LINES = 10
+    MAX_INFO_CHARACTER_LENGTH = 127
+    MAX_INFO_LINE_LENGTH = 93
+
     COLOR_DEFAULT = '\1'
     COLOR_GREEN = '\4'
     COLOR_LIGHTGREEN = '\3'

@@ -46,8 +46,11 @@ from listeners import OnClientDisconnect
 from listeners.tick import Delay
 #   Memory
 from memory import make_object
+#   Messages
+from messages import HintText
 #   Players
 from players.dictionary import PlayerDictionary
+from players.helpers import get_client_language
 from players.helpers import index_from_uniqueid
 from players.helpers import index_from_userid
 from players.helpers import uniqueid_from_playerinfo
@@ -63,6 +66,8 @@ from ..config import cfg_interval
 from ..config import cfg_bot_random_race
 #   Constants
 from ..constants import IS_ESC_SUPPORT_ENABLED
+from ..constants import MAX_INFO_LINES
+from ..constants import MAX_INFO_CHARACTER_LENGTH
 from ..constants import ModuleType
 from ..constants import RaceReason
 from ..constants import SkillReason
@@ -245,6 +250,8 @@ class Player(object, metaclass=_PlayerMeta):
         self._ready = False
         self._is_bot = uniqueid.startswith('BOT_')
         self._privileges = privileges['players'].get(uniqueid, {})
+        self._language = None
+        self._nodes = []
 
         self._id = None
         self._name = None
@@ -545,6 +552,56 @@ class Player(object, metaclass=_PlayerMeta):
 
         self.take_damage(damage, attacker, skip_hooks)
 
+    def queue_message(self, message, duration=3, callback=None, **kwargs):
+        if callback is None:
+            message = message.get_string(self.language, **kwargs)
+
+        node = _Node(message, duration, callback, self._nodes)
+
+        self._nodes.append(node)
+
+        return node
+
+    def refresh_messages(self):
+        if not self._nodes:
+            return
+
+        messages = []
+        now = time()
+        # characters = 0
+
+        for node in [*self._nodes]:
+            if node._start is not None and node.duration + node._start <= now:
+                self._nodes.remove(node)
+                continue
+
+            if node.callback is None:
+                message = node.message
+            else:
+                try:
+                    kwargs = node.callback(self)
+                except:
+                    except_hooks.print_exception()
+
+                    self._nodes.remove(node)
+                    continue
+                else:
+                    message = node.message.get_string(self.language, **kwargs)
+
+            # characters += len(message)
+
+            messages.append(message)
+
+            if node._start is None and node.duration is not None:
+                node._start = now
+
+            # TODO: Implement message length and line length later
+            if len(messages) >= MAX_INFO_LINES:  # or characters + len(messages) * 2 >= MAX_INFO_CHARACTER_LENGTH:
+                break
+
+        if messages:
+            HintText('\n'.join(messages)).send(self.index)
+
     @property
     def userid(self):
         assert self._userid is not None
@@ -585,6 +642,13 @@ class Player(object, metaclass=_PlayerMeta):
     @property
     def privileges(self):
         return self._privileges
+
+    @property
+    def language(self):
+        if self._language is None:
+            self._language = get_client_language(self.index)
+
+        return self._language
 
     @property
     def player(self):
@@ -1233,6 +1297,19 @@ class _Item(object):
     @property
     def stats(self):
         return self._stats
+
+
+class _Node(object):
+    def __init__(self, message, duration, callback, nodes):
+        self.message = message
+        self.duration = duration
+        self.callback = callback
+        self._nodes = nodes
+
+        self._start = None
+
+    def remove(self):
+        self._nodes.remove(self)
 
 
 # ============================================================================

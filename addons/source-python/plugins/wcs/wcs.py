@@ -60,6 +60,7 @@ from .core.config import cfg_welcome_gui_text
 from .core.config import cfg_level_up_effect
 from .core.config import cfg_rank_gain_effect
 from .core.config import cfg_spawn_text
+from .core.config import cfg_minimal_chat_spam
 from .core.config import cfg_disable_text_on_level
 from .core.config import cfg_top_announcement_enable
 from .core.config import cfg_top_public_announcement
@@ -144,6 +145,7 @@ from .core.players.filters import PlayerReadyIter
 from .core.ranks import rank_manager
 #   Translations
 from .core.translations import chat_strings
+from .core.translations import hud_strings
 from .core.translations import menu_strings
 
 # Is ESC supported?
@@ -284,10 +286,16 @@ def unload():
 
 
 def _xp_gained(wcsplayer, active_race, old_level, value, delay, _allow=True):
-    gain_xp_killed_message.send(wcsplayer.index, value=value)
+    if cfg_minimal_chat_spam.get_int():
+        wcsplayer.queue_message(hud_strings['gain xp killed'], value=value)
+    else:
+        gain_xp_killed_message.send(wcsplayer.index, value=value)
 
     if active_race.level > old_level and _allow:
-        gain_level_message.send(wcsplayer.index, level=active_race.level, xp=active_race.xp, required=active_race.required_xp)
+        if cfg_minimal_chat_spam.get_int():
+            wcsplayer.queue_message(hud_strings['gain level'], level=active_race.level, xp=active_race.xp, required=active_race.required_xp)
+        else:
+            gain_level_message.send(wcsplayer.index, level=active_race.level, xp=active_race.xp, required=active_race.required_xp)
 
     _delays[wcsplayer].remove(delay)
 
@@ -1345,3 +1353,11 @@ def github_refresh_repeat():
 
 if cfg_github_refresh_rate.get_int():
     github_refresh_repeat.start(cfg_github_refresh_rate.get_int() * 60)
+
+
+@Repeat
+def info_repeat():
+    if cfg_minimal_chat_spam.get_int():
+        for _, wcsplayer in PlayerReadyIter('human'):
+            wcsplayer.refresh()
+info_repeat.start(0.1)
