@@ -562,7 +562,7 @@ class Player(object, metaclass=_PlayerMeta):
 
         return node
 
-    def refresh_messages(self):
+    def queue_refresh(self):
         if not self._nodes:
             return
 
