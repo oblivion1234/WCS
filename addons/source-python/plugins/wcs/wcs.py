@@ -634,7 +634,7 @@ def player_death(event):
                                     value += gained
 
                                     if not wcsattacker._is_bot:
-                                        wcsattacker.queue_message(hud_strings['gain xp killed higher level'], value=gained)
+                                        wcsattacker.queue_message(hud_strings['gain xp killed higher level'], value=gained, difference=difference)
 
                         if event['weapon'] in _melee_weapons:
                             knife_xp = cfg_knife_xp.get_int()
