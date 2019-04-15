@@ -961,6 +961,7 @@ def on_player_rank_update(wcsplayer, old, new):
                     entity.call_input('TurnOn')
                     entity.call_input('FireUser1', '1')
 
+
 @OnPlayerReady
 def on_player_ready(wcsplayer):
     if wcsplayer.player.team_index >= 2:

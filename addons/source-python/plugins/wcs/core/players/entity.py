@@ -17,6 +17,9 @@ from random import randint
 from random import uniform
 #   Shlex
 from shlex import split
+#   Textwrap
+from textwrap import shorten
+from textwrap import wrap
 #   Time
 from time import time
 #   Warnings
@@ -66,8 +69,9 @@ from ..config import cfg_interval
 from ..config import cfg_bot_random_race
 #   Constants
 from ..constants import IS_ESC_SUPPORT_ENABLED
+from ..constants import MAX_INFO_BUFFER_LENGTH
 from ..constants import MAX_INFO_LINES
-from ..constants import MAX_INFO_CHARACTER_LENGTH
+from ..constants import MAX_INFO_LINE_LENGTH
 from ..constants import ModuleType
 from ..constants import RaceReason
 from ..constants import SkillReason
@@ -568,7 +572,6 @@ class Player(object, metaclass=_PlayerMeta):
 
         messages = []
         now = time()
-        # characters = 0
 
         for node in [*self._nodes]:
             if node._start is not None and node.duration + node._start <= now:
@@ -588,16 +591,22 @@ class Player(object, metaclass=_PlayerMeta):
                 else:
                     message = node.message.get_string(self.language, **kwargs)
 
-            # characters += len(message)
+            index = len(messages)
 
-            messages.append(message)
+            if len(message) > MAX_INFO_LINE_LENGTH:
+                if len(message) > MAX_INFO_BUFFER_LENGTH:
+                    messages.extend(wrap(shorten(message, MAX_INFO_BUFFER_LENGTH), MAX_INFO_LINE_LENGTH))
+                else:
+                    messages.extend(wrap(message, MAX_INFO_LINE_LENGTH))
+            else:
+                messages.append(message)
+
+            if len(messages) > MAX_INFO_LINES or len('\n'.join(messages)) > MAX_INFO_BUFFER_LENGTH:
+                del messages[index:]
+                break
 
             if node._start is None and node.duration is not None:
                 node._start = now
-
-            # TODO: Implement message length and line length later
-            if len(messages) >= MAX_INFO_LINES:  # or characters + len(messages) * 2 >= MAX_INFO_CHARACTER_LENGTH:
-                break
 
         if messages:
             HintText('\n'.join(messages)).send(self.index)
